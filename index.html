@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpoilerGuard 🎬</title>
+  <style>
+    /* Variáveis e reset */
+    :root {
+      --brand:      #7c6af7;
+      --brand-dim:  #7c6af71c;
+      --border:     #ccc;
+      --bg:         #eee;
+      --card-bg:    #f9f9f9;
+      --safe:       green;
+      --warning:    orange;
+      --danger:     red;
+      --muted:      #6c757d;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 0 1rem;
+      line-height: 1.5;
+      background: var(--bg);
+    }
+
+    /* Tipografia */
+    .title {
+      font-size: 32px;
+      margin: 0 0 16px 0;
+      font-weight: bold;
+    }
+
+    .title span {
+      color: var(--brand);
+    }
+
+    /* Formulário */
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    input {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .input-group input {
+      background: var(--brand-dim);
+    }
+
+    /* Botões */
+    button {
+      background-color: var(--brand);
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      background-color: var(--border);
+      cursor: not-allowed;
+    }
+
+    #btn-confirm-spoiler {
+      margin-left: 10px;
+      border: 2px solid var(--brand);
+      background: var(--brand);
+      color: white;
+    }
+
+    #btn-cancel-spoiler {
+      margin-left: 10px;
+      border: 2px solid var(--muted);
+      background: transparent;
+      color: black;
+    }
+
+    /* Área de resposta */
+    #answer {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: var(--card-bg);
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <p class="title">Spoiler<span>Guard</span> 🎬</p>
+  
+  <!-- Contexto do usuário: onde ele está na série -->
+  <div class="input-group">
+    <label>Série:</label>
+    <input type="text" id="serie" placeholder="ex: Better Call Saul">
+  </div>
+  <div class="input-group">
+    <label>Temporada:</label>
+    <input type="text" id="season" placeholder="ex: 2">
+  </div>
+  <div class="input-group">
+    <label>Episódio:</label>
+    <input type="text" id="episode" placeholder="ex: 3">
+  </div>
+
+  <!-- Pergunta livre -->
+  <div class="input-group">
+    <label>Pergunta:</label>
+    <input type="text" id="question" placeholder="ex: Quem fundou a HHM?">
+  </div>
+
+  <button id="btn-ask">Perguntar</button>
+
+  <!-- Área onde a resposta (ou erro) será renderizada -->
+  <div id="answer"></div>
+
+  <script type="module">
+    // Referências ao DOM
+    const btnAsk = document.getElementById('btn-ask')
+    const answerDiv = document.getElementById('answer')
+
+    // URL base da API
+    const API_URL = 'http://localhost:8000'
+
+    // Helpers de UI
+    // Exibe uma mensagem de erro formatada na área de resposta.
+    function showError(msg) {
+      answerDiv.innerHTML = `<p style="color:var(--danger)">⚠️ ${msg}</p>`
+      answerDiv.style.display = 'block'
+    }
+
+    // Habilita/desabilita o botão principal e atualiza seu texto.
+    function showLoading(isLoading) {
+      btnAsk.disabled = isLoading
+      btnAsk.textContent = isLoading ? 'Aguardando...' : 'Perguntar'
+    }
+
+    // Renderização da resposta
+    // Monta o HTML da resposta a partir do JSON retornado pela API.
+    function renderAnswer(data) {
+      const color = data.spoiler_level === 'SAFE' ? 'var(--safe)' : 'var(--warning)'
+
+      // Bloco de aviso (só aparece quando spoiler_level === "WARNING")
+      const warning = data.warning_message
+        ? `<p style="color:${color}">${data.warning_message}</p>`
+        : ''
+
+      // Dica opcional no rodapé da resposta
+      const tip = data.tip
+        ? `<small>💡 ${data.tip}</small>`
+        : ''
+
+      // Botões de confirmação — aparecem apenas em respostas WARNING
+      const confirmButtons = data.spoiler_level === 'WARNING'
+        ? `
+          <div style="margin-top: 15px;">
+            <button id="btn-confirm-spoiler">Quero spoiler!</button>
+            <button id="btn-cancel-spoiler">Não, obrigado</button>
+          </div>
+        `
+        : ''
+
+      return `
+        ${warning}
+        <p>${data.response}</p>
+        ${tip}
+        ${confirmButtons}
+      `
+    }
+
+    // Chamada ao endpoint /confirm
+    async function callConfirm(confirmed) {
+      const sessionId = localStorage.getItem('chat_id')
+
+      try {
+        const confirmRes = await fetch(`${API_URL}/confirm`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ session_id: sessionId, confirmed }),
+        })
+
+        const data = await confirmRes.json()
+
+        if (!confirmRes.ok) {
+          showError(data.detail ?? 'Erro ao confirmar.')
+          return
+        }
+
+        // Re-renderiza com a nova resposta e re-associa os listeners caso o modelo retorne outro WARNING em sequência
+        answerDiv.innerHTML = renderAnswer(data)
+        attachConfirmListeners()
+        
+      } catch {
+        showError('Não foi possível conectar ao servidor.')
+      }
+    }
+
+    // Listeners dos botões de confirmação de spoiler
+    // Associa os handlers aos botões "Quero spoiler" / "Não, obrigado".
+    // Precisa ser chamada toda vez que renderAnswer() for invocado, pois os botões são recriados no DOM a cada renderização.
+    function attachConfirmListeners() {
+      document.getElementById('btn-confirm-spoiler') ?.addEventListener('click', () => callConfirm(true))
+      document.getElementById('btn-cancel-spoiler') ?.addEventListener('click', () => callConfirm(false))
+    }
+
+    // Chamada ao endpoint /ask (ação principal)
+    btnAsk.addEventListener('click', async function() {
+      // Recupera ou gera o session_id.
+      // O UUID é persistido no localStorage para que o backend mantenha o histórico de conversa entre perguntas da mesma aba/sessão.
+      let sessionId = localStorage.getItem('chat_id')
+      if (!sessionId) {
+        sessionId = crypto.randomUUID()
+        localStorage.setItem('chat_id', sessionId)
+      }
+
+      const payload = {
+        session_id: sessionId,
+        serie:    document.getElementById('serie').value.trim(),
+        season:   document.getElementById('season').value.trim(),
+        episode:  document.getElementById('episode').value.trim(),
+        question: document.getElementById('question').value.trim(),
+      }
+
+      // Validação simples: todos os campos são obrigatórios
+      if (Object.values(payload).some(v => !v)) {
+        showError('Preencha todos os campos antes de perguntar.')
+        return
+      }
+
+      showLoading(true)
+      answerDiv.innerHTML = ''
+
+      try {
+        const askRes = await fetch(`${API_URL}/ask`, {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(payload),
+        })
+
+        const data = await askRes.json()
+
+        if (!askRes.ok) {
+          showError(data.detail ?? 'Erro desconhecido.')
+          return
+        }
+
+        answerDiv.innerHTML = renderAnswer(data)
+        attachConfirmListeners()
+
+      } catch {
+        showError('Não foi possível conectar ao servidor.')
+      } finally {
+        showLoading(false)
+        answerDiv.style.display = 'block'
+      }
+    })
+  </script>
+</body>
+</html>

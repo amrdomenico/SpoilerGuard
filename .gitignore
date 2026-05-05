@@ -1,0 +1,18 @@
+# Variáveis de ambiente
+.env
+
+# Ambiente virtual
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# IDEs
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
