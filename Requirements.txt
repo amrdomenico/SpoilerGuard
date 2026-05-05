@@ -1,6 +1,6 @@
-fastapi
-uvicorn
-google-genai
-google-api-core
-python-dotenv
-pydantic
+fastapi==0.135.3
+google-api-core==2.30.2
+google-genai==1.73.1
+pydantic==2.10.3
+python-dotenv==1.1.0
+uvicorn==0.44.0
