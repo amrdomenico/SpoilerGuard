@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SpoilerGuard 🎬</title>
   <style>
-    /* Variáveis e reset */
+    /* Variables and reset */
     :root {
       --brand:      #7c6af7;
       --brand-dim:  #7c6af71c;
@@ -31,7 +31,7 @@
       background: var(--bg);
     }
 
-    /* Tipografia */
+    /* Typography */
     .title {
       font-size: 32px;
       margin: 0 0 16px 0;
@@ -42,7 +42,7 @@
       color: var(--brand);
     }
 
-    /* Formulário */
+    /* Form */
     .input-group {
       margin-bottom: 16px;
     }
@@ -65,7 +65,7 @@
       background: var(--brand-dim);
     }
 
-    /* Botões */
+    /* Buttons */
     button {
       background-color: var(--brand);
       color: white;
@@ -94,7 +94,7 @@
       color: black;
     }
 
-    /* Área de resposta */
+    /* Response area */
     #answer {
       margin-top: 20px;
       padding: 15px;
@@ -107,7 +107,7 @@
 <body>
   <p class="title">Spoiler<span>Guard</span> 🎬</p>
   
-  <!-- Contexto do usuário: onde ele está na série -->
+  <!-- User context: where they are in the series -->
   <div class="input-group">
     <label>Série:</label>
     <input type="text" id="serie" placeholder="ex: Better Call Saul">
@@ -121,7 +121,7 @@
     <input type="text" id="episode" placeholder="ex: 3">
   </div>
 
-  <!-- Pergunta livre -->
+  <!-- Free-text question -->
   <div class="input-group">
     <label>Pergunta:</label>
     <input type="text" id="question" placeholder="ex: Quem fundou a HHM?">
@@ -129,46 +129,46 @@
 
   <button id="btn-ask">Perguntar</button>
 
-  <!-- Área onde a resposta (ou erro) será renderizada -->
+  <!-- Area where the response (or error) will be rendered -->
   <div id="answer"></div>
 
   <script type="module">
-    // Referências ao DOM
+    // DOM references
     const btnAsk = document.getElementById('btn-ask')
     const answerDiv = document.getElementById('answer')
 
-    // URL base da API
+    // API base URL
     const API_URL = 'http://localhost:8000'
 
-    // Helpers de UI
-    // Exibe uma mensagem de erro formatada na área de resposta.
+    // UI helpers
+    // Displays a formatted error message in the response area.
     function showError(msg) {
       answerDiv.innerHTML = `<p style="color:var(--danger)">⚠️ ${msg}</p>`
       answerDiv.style.display = 'block'
     }
 
-    // Habilita/desabilita o botão principal e atualiza seu texto.
+    // Enables/disables the main button and updates its text.
     function showLoading(isLoading) {
       btnAsk.disabled = isLoading
       btnAsk.textContent = isLoading ? 'Aguardando...' : 'Perguntar'
     }
 
-    // Renderização da resposta
-    // Monta o HTML da resposta a partir do JSON retornado pela API.
+    // Response rendering
+    // Assembles the response HTML from the JSON returned by the API.
     function renderAnswer(data) {
       const color = data.spoiler_level === 'SAFE' ? 'var(--safe)' : 'var(--warning)'
 
-      // Bloco de aviso (só aparece quando spoiler_level === "WARNING")
+      // Warning block (only appears when spoiler_level === "WARNING")
       const warning = data.warning_message
         ? `<p style="color:${color}">${data.warning_message}</p>`
         : ''
 
-      // Dica opcional no rodapé da resposta
+      // Optional tip in the response footer
       const tip = data.tip
         ? `<small>💡 ${data.tip}</small>`
         : ''
 
-      // Botões de confirmação — aparecem apenas em respostas WARNING
+      // Confirmation buttons — appear only in WARNING responses
       const confirmButtons = data.spoiler_level === 'WARNING'
         ? `
           <div style="margin-top: 15px;">
@@ -186,7 +186,7 @@
       `
     }
 
-    // Chamada ao endpoint /confirm
+    // Call to the /confirm endpoint
     async function callConfirm(confirmed) {
       const sessionId = localStorage.getItem('chat_id')
 
@@ -204,7 +204,7 @@
           return
         }
 
-        // Re-renderiza com a nova resposta e re-associa os listeners caso o modelo retorne outro WARNING em sequência
+        // Re-renders with the new response and re-attaches listeners if the model returns another WARNING in sequence
         answerDiv.innerHTML = renderAnswer(data)
         attachConfirmListeners()
         
@@ -213,18 +213,18 @@
       }
     }
 
-    // Listeners dos botões de confirmação de spoiler
-    // Associa os handlers aos botões "Quero spoiler" / "Não, obrigado".
-    // Precisa ser chamada toda vez que renderAnswer() for invocado, pois os botões são recriados no DOM a cada renderização.
+    // Spoiler confirmation button listeners
+    // Attaches handlers to the "I want the spoiler" / "No, thank you" buttons.
+    // Needs to be called every time renderAnswer() is invoked, as the buttons are recreated in the DOM with each render.
     function attachConfirmListeners() {
       document.getElementById('btn-confirm-spoiler') ?.addEventListener('click', () => callConfirm(true))
       document.getElementById('btn-cancel-spoiler') ?.addEventListener('click', () => callConfirm(false))
     }
 
-    // Chamada ao endpoint /ask (ação principal)
+    // Call to the /ask endpoint (main action)
     btnAsk.addEventListener('click', async function() {
-      // Recupera ou gera o session_id.
-      // O UUID é persistido no localStorage para que o backend mantenha o histórico de conversa entre perguntas da mesma aba/sessão.
+      // Retrieves or generates the session_id.
+      // The UUID is persisted in localStorage so the backend maintains the conversation history between questions in the same tab/session.
       let sessionId = localStorage.getItem('chat_id')
       if (!sessionId) {
         sessionId = crypto.randomUUID()
@@ -239,7 +239,7 @@
         question: document.getElementById('question').value.trim(),
       }
 
-      // Validação simples: todos os campos são obrigatórios
+      // Simple validation: all fields are required
       if (Object.values(payload).some(v => !v)) {
         showError('Preencha todos os campos antes de perguntar.')
         return
