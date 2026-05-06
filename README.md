@@ -10,7 +10,7 @@ The user provides the series, season, and episode they stopped at, then asks que
 
 ```mermaid
 sequenceDiagram
-    actor U as Usuário
+    actor U as User
     participant F as Frontend
     participant B as Backend (FastAPI)
     participant G as Gemini API
