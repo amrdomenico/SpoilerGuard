@@ -40,6 +40,14 @@ sequenceDiagram
 
 ---
 
+ 
+## Interface
+ 
+![Form and SAFE response](assets/Screenshot-safe.png)
+![WARNING response with confirmation buttons](assets/Screenshot-warning.png)
+ 
+---
+
 ## Learning Objectives
 
 This project was built to study the following concepts in practice:
