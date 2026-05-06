@@ -94,7 +94,7 @@ This project was built to study the following concepts in practice:
 ## Installation
 
 ```bash
-git clone https://github.com/amrdomenico/spoilerguard.git
+git clone https://github.com/amrdomenico/SpoilerGuard.git
 cd spoilerguard
 
 python -m venv .venv
